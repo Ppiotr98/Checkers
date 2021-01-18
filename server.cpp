@@ -42,12 +42,46 @@ void *serve_single_client(void *arg)
         }
 
         //create message object
-        Message message(clientDescriptor->address.sin_port, buf);
+        Message recivedMessage(clientDescriptor->address.sin_port, buf);
         printf("New message from: %d tag: %d message: %s\n", 
-                message.userID, message.tag, message.message.c_str());
+                recivedMessage.userID, recivedMessage.tag, recivedMessage.message.c_str());
 
-        //TODO
-        //client messages handling
+        switch (recivedMessage.tag)
+        {
+        case TAG_JOIN_RANDOM_GAME:
+            //TODO
+            break;
+
+        case TAG_JOIN_GAME:
+            //TODO
+            break;
+
+        case TAG_HOST_GAME:
+            //TODO
+            break;
+
+        case TAG_PAWN_MOVED:
+        {
+            Message response(0, TAG_PAWN_MOVED, recivedMessage.message);
+            write(clientDescriptor->socket, response.getString().c_str(), response.size);
+            break;
+        }
+
+        case TAG_SURRENDER:
+            //TODO
+            break;
+
+        case TAG_OFFER_DRAW:
+            //TODO
+            break;
+
+        case TAG_ACCEPT_DRAW:
+            //TODO
+            break;
+        
+        default:
+            break;
+        }
     }
 }
 
@@ -86,14 +120,17 @@ int main()
         pthread_create(&tid, NULL, serve_single_client, clientDescriptor);
         
         //example how to send a message to the client
-        int serverID = addr.sin_port;
+        /*
         int t = TAG_JOIN_RANDOM_GAME;
         std::string str = "a1";
-        Message mes(serverID, t, str);
-        const char* buf = mes.getString().c_str();
+        Message mes(0, t, str);
 
         for(int i = 0; i < 3; i++)
-            write(clientDescriptor->socket, buf, mes.size);
+        {
+            write(clientDescriptor->socket, mes.getString().c_str(), mes.size);
+            sleep(0.2);
+        }
+        */
 
         pthread_detach(tid);
     }

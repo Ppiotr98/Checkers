@@ -3,9 +3,9 @@
 
 #include "message.h"
 
-Message::Message(int clientAddress, std::string dataString)
+Message::Message(int newUser, std::string dataString)
 {
-    userID = clientAddress;
+    userID = newUser;
 
     tag = stoi(dataString.substr(0, dataString.find(";")));
     dataString.erase(0, dataString.find(";") + 1);
@@ -13,16 +13,16 @@ Message::Message(int clientAddress, std::string dataString)
     message = dataString.substr(0, dataString.find(";"));
     dataString.erase(0, dataString.find(";") + 1);
 
-    size = (std::to_string(clientAddress)).length() + 1 + dataString.length();
+    size = dataString.length();
 }
 
 Message::Message(int newUser, int newTag, std::string newMessage)
 : userID(newUser), tag(newTag), message(newMessage)
 {
-    size = std::to_string(userID).length() + std::to_string(tag).length() + message.length() + 2;
+    size = std::to_string(tag).length() + 1 + message.length();
 }
 
 std::string Message::getString()
 {
-    return std::to_string(userID) + ";" + std::to_string(tag) + ";" + message;
+    return std::to_string(tag) + ";" + message;
 }

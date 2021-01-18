@@ -68,8 +68,10 @@ public:
     //length of message
     int size;
 
-    Message(int clientAddress, std::string dataString);
+    Message(int newUser, std::string dataString);
     Message(int newUser, int newTag, std::string newMessage);
+
+    //return <tag>;<message> string
     std::string getString();
 };
 
