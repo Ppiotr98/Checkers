@@ -1,3 +1,6 @@
+#ifndef MESSAGE_H
+#define MESSAGE_H
+
 #include <string>
 
 #ifndef TAG_JOIN_RANDOM_GAME
@@ -55,14 +58,16 @@
 #define TAG_DRAW_ACCEPTED 110
 #endif
 
-#ifndef MESSAGE_H
-#define MESSAGE_H
-
 class Message
 {
 public:
+    //sender id
     int userID;
+
+    //message tag
     int tag;
+
+    //message string
     std::string message;
     
     //length of message
@@ -72,8 +77,10 @@ public:
     Message(int newUser, int newTag, std::string newMessage);
 
     //return <tag>;<message> string
-    std::string getString();
-};
+    const char* getString();
 
+    //send <tag>;<message> string to given reciver
+    void sendto(int reciverSocket);
+};
 
 #endif //MESSAGE_H

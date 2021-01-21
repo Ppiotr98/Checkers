@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 #include "message.h"
 
@@ -22,7 +23,12 @@ Message::Message(int newUser, int newTag, std::string newMessage)
     size = std::to_string(tag).length() + 1 + message.length();
 }
 
-std::string Message::getString()
+const char* Message::getString()
 {
-    return std::to_string(tag) + ";" + message;
+    return (std::to_string(tag) + ";" + message).c_str();
+}
+
+void Message::sendto(int reciverSocket)
+{
+    write(reciverSocket, getString(), size);
 }

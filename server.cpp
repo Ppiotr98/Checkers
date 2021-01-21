@@ -1,13 +1,21 @@
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <vector>
+#include <stdexcept>
 
 #include "message.h"
+#include "game.h"
 
 #define buf_size 128
+
+//global variables:
+std::vector <Game> games;
+std::vector <Player> players;
 
 //connection descriptor
 //holding clients socket and address
@@ -57,13 +65,54 @@ void *serve_single_client(void *arg)
             break;
 
         case TAG_HOST_GAME:
-            //TODO
+        {
+            //recivedMessage: <nick>
+            std::string nick = recivedMessage.message;
+
+            Player* hostPlayer = getPlayer(players, recivedMessage.userID);
+
+            //hosting player isn't stored in players vector
+            if(hostPlayer == nullptr)
+            {
+                //create player and add to players vector
+                Player player(recivedMessage.userID, nick);
+                players.push_back(player);
+
+                hostPlayer = &players.back();
+            }
+
+            //create game and add to games vector
+            Game game(games.size(), hostPlayer);
+            games.push_back(game);
+
+            hostPlayer->gameID = game.id;
+            //std::cout << hostPlayer->gameID << std::endl;
+
+            //create and send response to client
+            Message response(0, TAG_GAME_HOSTED, std::to_string(game.id));
+            response.sendto(clientDescriptor->socket);
+
             break;
+        }
 
         case TAG_PAWN_MOVED:
         {
+            //recivedMessage: 
+            //<beginning_row>;<beginning_col>;<finish_row>;<finish_col>;<is_turn_ended>
+
+            //find the opponent
+            Player* opponent = getOpponent(players, games, recivedMessage.userID);
+
+            //no opponent found
+            if(opponent == nullptr)
+            {
+                throw std::invalid_argument("Player with this id doesn't exist or have no opponent");
+            }
+            
+            //create and send response to client
             Message response(0, TAG_PAWN_MOVED, recivedMessage.message);
-            write(clientDescriptor->socket, response.getString().c_str(), response.size);
+            response.sendto(opponent->clientSocket);
+
             break;
         }
 
@@ -121,13 +170,14 @@ int main()
         
         //example how to send a message to the client
         /*
+        int reciverSocket = clientDescriptor->socket;
         int t = TAG_JOIN_RANDOM_GAME;
         std::string str = "a1";
         Message mes(0, t, str);
 
         for(int i = 0; i < 3; i++)
         {
-            write(clientDescriptor->socket, mes.getString().c_str(), mes.size);
+            mes.sendto(reciverSocket);
             sleep(0.2);
         }
         */

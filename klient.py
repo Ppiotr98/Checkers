@@ -33,11 +33,10 @@ if __name__ == "__main__":
     thread.start()
 
     # example how to send a message to the server
-    message = str(TAG_PAWN_MOVED) + ";" + "a1"
+    message = str(TAG_HOST_GAME) + ";" + "random_nick"
     for _ in range(3):
         sock.send(bytes(message, "utf-8"))
         sleep(.05)
-
 
     while True:
         continue
