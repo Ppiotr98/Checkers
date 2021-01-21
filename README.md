@@ -1,6 +1,6 @@
 SERVER
 
-compile: g++ server.cpp message.cpp -o server.o -Wall -lpthread
+compile: g++ server.cpp message.cpp game.cpp -o server.o -Wall -lpthread
 
 run: ./server.o
 
