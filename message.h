@@ -58,6 +58,21 @@
 #define TAG_DRAW_ACCEPTED 110
 #endif
 
+#ifndef TAG_GAME_WON
+//game won
+#define TAG_GAME_WON 111
+#endif
+
+#ifndef TAG_GAME_LOST
+//game lost
+#define TAG_GAME_LOST 112
+#endif
+
+#ifndef TAG_GAME_DRAWN
+//game drawn
+#define TAG_GAME_DRAWN 113
+#endif
+
 class Message
 {
 public:
@@ -77,7 +92,7 @@ public:
     Message(int newUser, int newTag, std::string newMessage);
 
     //return <tag>;<message> string
-    const char* getString();
+    std::string getString();
 
     //send <tag>;<message> string to given reciver
     void sendto(int reciverSocket);

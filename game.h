@@ -10,6 +10,12 @@ enum Status
     WAITING = 2
 };
 
+enum Color
+{
+    WHITE = 0,
+    BLACK = 1
+};
+
 class Player
 {
 public:
@@ -24,7 +30,7 @@ public:
     //used to address messages
     int clientSocket;
 
-    Player(int newID, std::string newNick);
+    Player(int newID, std::string newNick, int newSocket);
     Player();
 };
 
@@ -41,8 +47,8 @@ public:
     Game();
 };
 
-Player* getPlayer(std::vector <Player> players, int playerID);
-Player* getOpponent(std::vector <Player> players, 
-        std::vector <Game> games, int playerID);
+Player* getPlayer(Player* players, int playersCount, int playerID);
+Player* getOpponent(Player* players, int playersCount, 
+        Game* games, int gamesCount, int playerID);
 
 #endif //GAME_H

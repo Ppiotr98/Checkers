@@ -7,8 +7,8 @@ Player::Player()
 
 }
 
-Player::Player(int newID, std::string newNick)
-: id(newID), nick(newNick)
+Player::Player(int newID, std::string newNick, int newSocket)
+: id(newID), nick(newNick), clientSocket(newSocket)
 {
 
 }
@@ -38,9 +38,9 @@ Game::Game(int newID, Player* player)
     }
 }
 
-Player* getPlayer(std::vector <Player> players, int playerID)
+Player* getPlayer(Player* players, int playersCount, int playerID)
 {
-    for(std::vector<Player>::size_type i = 0; i < players.size(); i++)
+    for(int i = 0; i < playersCount; i++)
     {
         //its our player
         if(players[i].id == playerID)
@@ -53,11 +53,11 @@ Player* getPlayer(std::vector <Player> players, int playerID)
     return nullptr;
 }
 
-Player* getOpponent(std::vector <Player> players, 
-        std::vector <Game> games, int playerID)
+Player* getOpponent(Player* players, int playersCount,
+        Game* games, int gamesCount, int playerID)
 {
     //find our player
-    Player* ourPlayer = getPlayer(players, playerID);
+    Player* ourPlayer = getPlayer(players, playersCount, playerID);
 
     //player doesn't exist
     if (ourPlayer == nullptr)

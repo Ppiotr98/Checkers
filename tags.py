@@ -30,3 +30,12 @@ TAG_WRONG_IP = 109
 
 #opponent accepted draw
 TAG_DRAW_ACCEPTED = 110
+
+#game won
+TAG_GAME_WON = 111
+
+#game lost:
+TAG_GAME_LOST = 112
+
+#game drawn:
+TAG_GAME_DRAWN = 113

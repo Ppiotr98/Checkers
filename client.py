@@ -15,41 +15,40 @@ from tags import *
 
 ###
 
-PORT = 7777
-IP = '127.0.0.1'
+PORT = 7777 #server port
+IP = '127.0.0.1' #server ip
 
-FONT = pygame.font.SysFont(None, 40)
+FONT = pygame.font.SysFont(None, 40) #font
 
-WIDTH, HEIGHT = 1000, 600
-ROWS, COLS = 8, 8
-SQUARE_SIZE = HEIGHT//ROWS
-FPS = 60
+WIDTH, HEIGHT = 1000, 600 #window dimensions
+ROWS, COLS = 8, 8 #rows and columns on board
+SQUARE_SIZE = HEIGHT//ROWS #size of a single board square
+FPS = 60 #frames per second
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-#WINDOW_BG = (30, 15, 10)
-WINDOW_BG = (55, 30, 25)
-OUTLINE_WHITE = (210, 210, 210)
-OUTLINE_BLACK = (30, 30, 30)
-BG1 = (90, 50, 40)
-BG2 = (130, 80, 60)
-BLUE = (120, 150, 200)
-BLUE2 = (60, 75, 100)
+WHITE = (255, 255, 255) #white color
+BLACK = (0, 0, 0) #black color
+WINDOW_BG = (55, 30, 25) #window background
+OUTLINE_WHITE = (210, 210, 210) #white piece outline
+OUTLINE_BLACK = (30, 30, 30) #black piece outline
+BG1 = (90, 50, 40) #additional background #1
+BG2 = (130, 80, 60) #additional background #2
+BLUE = (120, 150, 200) #blue color #1
+BLUE2 = (60, 75, 100) #blue color #2
 
-CROWN = pygame.transform.scale(pygame.image.load("crown.jpg"), (36, 27))
+CROWN = pygame.transform.scale(pygame.image.load("crown.png"), (36, 27)) #crown icon for queen
 
-EMPTY = 0
+EMPTY = 0 #empty messege tag - no data available from teh server after server.read()
 
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Sooper Kool Checkers")
+WIN = pygame.display.set_mode((WIDTH, HEIGHT)) #display window
+pygame.display.set_caption("Sooper Kool Checkers") #window caption
 
-clock = pygame.time.Clock()
-click = False
-nick = "Player"
+clock = pygame.time.Clock() #clock
+click = False #checks if mouse button was clicked
+nick = "Player" #player nick
 
 ###
 
-def is_int(s):
+def is_int(s): #checks if s is integer
     try: 
         int(s)
         return True
@@ -58,14 +57,14 @@ def is_int(s):
 
 ###
 
-class Messege:
+class Messege: #messeges from and to server; tag determines what type of messege was sent/received and data is additional information
     def __init__(self, tag, data):
         self.tag = tag
         self.data = data
 
 ###
 
-class Server:
+class Server: #server class. it contains client's socket and handles sending and receiving data to/from the server, as well as connecting
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.readable = []
@@ -77,18 +76,21 @@ class Server:
         #fcntl.fcntl(self.sock, fcntl.F_SETFL, os.O_NONBLOCK)
         self.sock.setblocking(False)
 
+    def disconnect(self):
+        self.sock.shutdown(socket.SHUT_RDWR)
+        self.sock.close()
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     def read(self):
         self.readable, self.writable, self.errors = select.select([self.sock], [self.sock], [self.sock], 0.5)
 
         if not self.readable:
-            #print(EMPTY)
             messege = Messege(EMPTY, [])
             return messege 
-
-        #print("COS!")
         
         messege = self.sock.recv(64)
         messege = messege.decode("utf-8")
+        print("New message from server: ", messege)
 
         messege = messege.split(';')
 
@@ -108,26 +110,27 @@ class Server:
             messege = messege + ';' + str(d)
         self.sock.send(bytes(messege, "utf-8"))
 
+server = Server() #global Server class object
+
 ###
 
-server = Server()
-
-class Game():
+class Game(): #this class handles the game. What square/piece was selected, what board is supposed to do and so on...
     def __init__(self, win, my_color):
         self._init()
         self.win = win
         self.my_color = my_color
         
     def _init(self):
-        self.selected = None
-        self.board = Board()
-        self.turn = BLACK
-        self.valid_moves = {}
-        self.selected_piece = None
-        self.prev_moved = None
-        self.prev_turn = WHITE
-        self.jump_again = False
-        self.additional_moves = {}
+        self.selected = None #currenly selected piece
+        self.board = Board() #board
+        self.turn = BLACK #whose turn is now
+        self.valid_moves = {} #list of valid moves for selected piece
+        self.selected_piece = None #additional selected
+        self.prev_moved = None #previously moved piece
+        self.prev_turn = WHITE #whose was the previous turn
+        self.jump_again = False #False if current player's turn is done, True if there are more jumping moves to be made by that player
+        self.additional_moves = {} #potential moves that could be made by already moved piece
+        self.move_made = False
         
     def update(self):
         self.board.draw(self.win)
@@ -137,18 +140,20 @@ class Game():
     def reset(self):
         self._init()
 
-    def select(self, row, col):
-        if self.jump_again == True:
+    def select(self, row, col): #called when played clicked the board. If player has nothing selected and clicks an empty square or square with rival's piece - nothing happens. If playes has nothing selected and clicks his own piece it illuminates it and show possible moves, also this piece becomes selected. If player has a piece selected and clicks on nothing, the state is reset. If player has a piece selected and clicks a square where player can move it moves the piece there using _move method. Actually _move is always called when a piece is selected, it checks if the click encodes a possible move and if yes - it makes that move.
+
+        self.move_made = False
+
+        if self.jump_again == True: #if jump_again is True it means that player has to do some additional jumps, player cannot 'unselect' piece in that state. the 'if' block checks if player clicked a square with possible move and if not - it returns False.
             if (row, col) not in self.additional_moves:
                 return False
     
-        if self.selected:
+        if self.selected: 
             rowp = self.selected_piece.row
             colp = self.selected_piece.col
             spiece = self.board.get_piece(rowp, colp)
             spiece.selected = False
             
-            #print("if self.selected:")
             result = self._move(row, col)
             if not result:
                 #print("if not result")
@@ -168,13 +173,22 @@ class Game():
             return True
             
         return False
+
+    def rival_move(self, row_from, col_from, row_to, col_to):
+        self.move_made = False
+        self.select(row_from, col_from)
+        self.select(row_to, col_to)
+        if not self.move_made:
+            return False
+        return True
     
     def _move(self, row, col):
         move_to = self.board.get_piece(row, col)
         if self.selected and move_to == 0 and (row, col) in self.valid_moves:
             row_moved_from = self.selected.row
             col_moved_from = self.selected.col
-            self.board.move(self.selected, row, col)           
+            self.board.move(self.selected, row, col)
+            self.move_made = True           
             self.prev_moved = self.selected
             self.prev_turn = self.prev_moved.color
             skipped = self.valid_moves[(row, col)]
@@ -195,9 +209,9 @@ class Game():
                 self.additional_moves = {}
                 self.change_turn()
 
-            #SEND MOVE TO SERVER: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+            #SEND MOVE TO SERVER: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             global server
-            server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, self.jump_again])
+            server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
             
         else:
             return False
@@ -475,14 +489,14 @@ def draw_text(text, font, color, surface, x, y):
     
 ###
 
-def get_row_col_from_mouse(x, y):
+def get_row_col_from_mouse(x, y): #takes mouse position and returns row and column within that position
     row = y // SQUARE_SIZE
     col = x // SQUARE_SIZE
     return row, col
 
 ###
 
-def gameplay(rival, color):
+def gameplay(rival, color): #contains main game loop
     global WIN
     global click
     global server
@@ -491,12 +505,19 @@ def gameplay(rival, color):
     
     run = True
 
+    show_accept_draw = False
+
     while run:
         clock.tick(FPS)
         WIN.fill(WINDOW_BG)
         
         if game.board.winner() != None:
-            print(game.board.winner())
+            if game.board.winner() == game.my_color:
+                won()
+                return
+            else:
+                lost()
+                return
         
         draw_text('Playing with: ' + rival, FONT, WHITE, WIN, 620, 20)
                 
@@ -518,46 +539,60 @@ def gameplay(rival, color):
             button_surrender_bg = BG2
             if click:
                 surrender()
-        if button_accept_draw.collidepoint((mx, my)):
+                return
+        if button_accept_draw.collidepoint((mx, my)) and show_accept_draw:
             button_accept_draw_bg = BG2
             if click:
                 accept_draw()
+                return
                 
         pygame.draw.rect(WIN, button_offer_draw_bg, button_offer_draw)
         pygame.draw.rect(WIN, button_surrender_bg, button_surrender)
-        pygame.draw.rect(WIN, button_accept_draw_bg, button_accept_draw)
+        if show_accept_draw:
+            pygame.draw.rect(WIN, button_accept_draw_bg, button_accept_draw)
         
         draw_text('OFFER DRAW', FONT, WHITE, WIN, 655, 105)
         draw_text('SURRENDER', FONT, WHITE, WIN, 655, 205)
-        draw_text('ACCEPT DRAW', FONT, WHITE, WIN, 655, 305)
+        if show_accept_draw:
+            draw_text('ACCEPT DRAW', FONT, WHITE, WIN, 655, 305)
         
-        if game.turn == BLACK:
-            draw_text('TURN: BLACK', FONT, BLACK, WIN, 620, 555)
-        if game.turn == WHITE:
-            draw_text('TURN: WHITE', FONT, WHITE, WIN, 620, 555)
+        if game.turn == BLACK and game.my_color == BLACK:
+            draw_text('TURN: BLACK (YOU)', FONT, BLACK, WIN, 620, 555)
+        if game.turn == BLACK and game.my_color != BLACK:
+            draw_text('TURN: BLACK (RIVAL)', FONT, BLACK, WIN, 620, 555)
+        if game.turn == WHITE and game.my_color == WHITE:
+            draw_text('TURN: WHITE (YOU)', FONT, WHITE, WIN, 620, 555)
+        if game.turn == WHITE and game.my_color != WHITE:
+            draw_text('TURN: WHITE (RIVAL)', FONT, WHITE, WIN, 620, 555)
 
         rival_move = []
         rival_done = False
 
         messege = server.read()
-        if messege.tag == EMPTY:
-            pass
-        elif messege.tag == TAG_PAWN_MOVED:
+        if messege.tag == TAG_PAWN_MOVED:
             rival_move.append(messege.data[0])
             rival_move.append(messege.data[1])
             rival_move.append(messege.data[2])
             rival_move.append(messege.data[3])
             rival_done = messege.data[4]
         elif messege.tag == TAG_SURRENDER:
-            pass
+            won()
+            return
         elif messege.tag == TAG_OFFER_DRAW:
-            pass
+            show_accept_draw = True
         elif messege.tag == TAG_DRAW_ACCEPTED:
-            pass
-        else:
+            accept_draw()
+            return
+        elif messege.tag == TAG_GAME_WON:
+            won()
+        elif messege.tag == TAG_GAME_LOST:
+            lost()
+        elif messege.tag == TAG_GAME_DRAWN:
+            drawn()
+        elif messege.tag != EMPTY:
             print("ERROR_gameplay(): ", messege.tag)
-            pygame.quit()
-            sys.exit()
+            error()
+            return
         
         click = False
         for event in pygame.event.get():
@@ -577,28 +612,56 @@ def gameplay(rival, color):
                         game.select(row, col)
         
         if rival_move and game.turn != game.my_color:
-            game.select(rival_move[0], rival_move[1])
-            game.select(rival_move[2], rival_move[3])
+            if not game.rival_move(rival_move[0], rival_move[1], rival_move[2], rival_move[3]):
+                error()
+                return
 
         game.update()
 
 ###
 
+def won():
+    global server
+    server.write(TAG_GAME_WON)
+    server.disconnect()
+    print("WON")
+
+def lost():
+    global server
+    server.write(TAG_GAME_LOST)
+    server.disconnect()
+    print("LOST")
+
+def drawn():
+    global server
+    server.write(TAG_GAME_DRAWN)
+    server.disconnect()
+    print("DRAWN")
+
+def error():
+    global server
+    server.disconnect()
+    print("ERROR OCCURED")
+
+###
+
 def offer_draw():
-    pygame.quit()
-    sys.exit()
+    global server
+    server.write(TAG_OFFER_DRAW, [])
 
 ###
 
 def surrender():
-    pygame.quit()
-    sys.exit()
+    global server
+    server.write(TAG_SURRENDER, [])
+    lost()
 
 ###
 
 def accept_draw():
-    pygame.quit()
-    sys.exit()
+    global server
+    server.write(TAG_ACCEPT_DRAW, [])
+    drawn()
 
 ###
 
@@ -616,6 +679,7 @@ def host_game():
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                server.disconnect()
                 pygame.quit()
                 sys.exit()
         messege = server.read()
@@ -626,8 +690,8 @@ def host_game():
             break
         else:
             print("ERROR_00")
-            pygame.quit()
-            sys.exit()
+            server.disconnect()
+            return
 
     rival = None
     color = None
@@ -638,6 +702,7 @@ def host_game():
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                server.disconnect()
                 pygame.quit()
                 sys.exit()
         messege = server.read()
@@ -653,8 +718,8 @@ def host_game():
             break
         else:
             print("ERROR_host_game()")
-            pygame.quit()
-            sys.exit()
+            server.disconnect()
+            return
 
     wait = True
     wait_time = 1000
@@ -708,6 +773,8 @@ def join_game():
             if event.type == pygame.KEYDOWN:
                 if active:
                     if event.key == pygame.K_RETURN:
+                        if not is_int(ip):
+                            return
                         ip = int(text)
                         text = ''
                         done = True
@@ -733,7 +800,7 @@ def join_game():
     
     server.connect_to_server(IP, PORT)
 
-    server.write(TAG_JOIN_GAME, (ip, nick))
+    server.write(TAG_JOIN_GAME, (ip, nick))      
 
     ip_correct = True
     rival = None
@@ -744,6 +811,7 @@ def join_game():
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                server.disconnect()
                 pygame.quit()
                 sys.exit()
         messege = server.read()
@@ -751,6 +819,7 @@ def join_game():
             continue
         if messege.tag == TAG_WRONG_IP:
             ip_correct = False
+            server.disconnect()
             break
         if messege.tag == TAG_GAME_STARTED:
             rival = messege.data[0]
@@ -762,8 +831,8 @@ def join_game():
             break
         else:
             print("ERROR_join_game()")
-            pygame.quit()
-            sys.exit()
+            server.disconnect()
+            return
     
     #print(rival, color, BLACK)
 
@@ -815,6 +884,7 @@ def join_random_game():
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                server.disconnect()
                 pygame.quit()
                 sys.exit()
         messege = server.read()
@@ -830,8 +900,8 @@ def join_random_game():
             break
         else:
             print("ERROR_join_random_game()")
-            pygame.quit()
-            sys.exit()
+            server.disconnect()
+            return
 
     wait = True
     wait_time = 1000
