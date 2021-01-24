@@ -190,6 +190,11 @@ class Game(): #this class handles the game. What square/piece was selected, what
             row_moved_from = self.selected.row
             col_moved_from = self.selected.col
             self.board.move(self.selected, row, col)
+            
+            global server
+            if self.turn == self.my_color:
+                server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
+
             self.move_made = True           
             self.prev_moved = self.selected
             self.prev_turn = self.prev_moved.color
@@ -209,12 +214,7 @@ class Game(): #this class handles the game. What square/piece was selected, what
             
             if self.jump_again == False:
                 self.additional_moves = {}
-                self.change_turn()
-
-            #SEND MOVE TO SERVER: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            global server
-            if self.turn == self.my_color:
-                server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
+                self.change_turn()    
             
         else:
             return False
@@ -310,6 +310,17 @@ class Board:
             row, col = move
             pygame.draw.circle(win, BLUE, (col * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2), 10)
         
+    def is_stuck(self, turn):
+        for r in self.board:
+            for p in r:
+                if p != 0:
+                    if p.color == turn:
+                        moves = {}
+                        moves = self._get_all_moves(p)
+                        if moves:
+                            return False
+        return True
+
     def get_valid_moves(self, piece):
         moves = {}
         moves = self._get_all_moves(piece)
@@ -521,6 +532,10 @@ def gameplay(rival, color): #contains main game loop
             else:
                 lost()
                 return
+
+        if game.board.is_stuck(game.turn):
+            drawn()
+            return
         
         draw_text('Playing with: ' + rival, FONT, WHITE, WIN, 620, 20)
                 
