@@ -65,8 +65,97 @@ void *serve_single_client(void *arg)
         switch (recivedMessage.tag)
         {
         case TAG_JOIN_RANDOM_GAME:
-            //TODO
+        {
+            //recivedMessage: <nick>
+            std::string nick = recivedMessage.message;
+
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, recivedMessage.userID);
+
+            //hosting player isn't stored in players array
+            if(ourPlayer == nullptr)
+            {
+                //create player and add to players array
+                Player player(recivedMessage.userID, nick, clientDescriptor->socket);
+
+                players[playersCount] = player;
+                playersCount++;
+
+                ourPlayer = &players[playersCount - 1];
+            }
+
+            gamesMutex.lock();
+
+            //find game to join
+            Game* game = findGame(games, gamesCount);
+
+            //no game found
+            if(game == nullptr)
+            {
+                //create new game
+                Game game(gamesCount, ourPlayer);
+                games[gamesCount] = game;
+                gamesCount++;
+
+                //assign our player to the game
+                ourPlayer->gameID = game.id;
+
+                gamesMutex.unlock();
+                playersMutex.unlock();
+
+                break;
+            }
+
+            //assign our player to the game
+            ourPlayer->gameID = game->id;
+            
+            Player* opponent;
+            Color ourPlayerColor;
+            Color opponentColor;
+
+            //our player will play black
+            if(game->blackPlayer == nullptr)
+            {
+                game->blackPlayer = ourPlayer;
+                ourPlayerColor = BLACK;
+
+                opponent = game->whitePlayer;
+                opponentColor = WHITE;
+            }
+            //our player will play white
+            if(game->whitePlayer == nullptr)
+            {
+                game->whitePlayer = ourPlayer;
+                ourPlayerColor = WHITE;
+
+                opponent = game->blackPlayer;
+                opponentColor = BLACK;
+            }
+
+            //start game
+            game->status = ONGOING;
+
+            gamesMutex.unlock();
+
+            //create and send response to our player
+            std::string ourPlayerMessage = opponent->nick + 
+                    ";" + std::to_string(ourPlayerColor);
+            Message ourPlayerResponse(0, TAG_GAME_STARTED, ourPlayerMessage);
+            ourPlayerResponse.sendto(ourPlayer->clientSocket);
+
+            //create and send response to opponent
+            std::string opponentMessage = (std::string)(ourPlayer->nick + 
+                    ";" + std::to_string(opponentColor));
+            Message opponentResponse(0, TAG_GAME_STARTED, opponentMessage);
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock(); 
+
             break;
+        }
 
         case TAG_JOIN_GAME:
         {

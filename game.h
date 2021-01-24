@@ -50,5 +50,6 @@ public:
 Player* getPlayer(Player* players, int playersCount, int playerID);
 Player* getOpponent(Player* players, int playersCount, 
         Game* games, int gamesCount, int playerID);
+Game* findGame(Game* games, int gamesCount);
 
 #endif //GAME_H

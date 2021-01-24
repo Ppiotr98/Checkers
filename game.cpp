@@ -8,7 +8,7 @@ Player::Player()
 }
 
 Player::Player(int newID, std::string newNick, int newSocket)
-: id(newID), nick(newNick), clientSocket(newSocket)
+: id(newID), nick(newNick), gameID(-1), clientSocket(newSocket)
 {
 
 }
@@ -89,5 +89,21 @@ Player* getOpponent(Player* players, int playersCount,
     }
 
     //player with this id dosn't exist
+    return nullptr;
+}
+
+Game* findGame(Game* games, int gamesCount)
+{
+    //iterate throu all games
+    for (int i = 0; i < gamesCount; i++)
+    {
+        //found game to join
+        if(games[i].status == WAITING)
+        {
+            return &games[i];
+        }
+    }
+
+    //no game found
     return nullptr;
 }
