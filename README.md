@@ -6,4 +6,4 @@ run: ./server.o
 
 CLIENT
 
-run: python3 klient.py
+run: python3 client.py
