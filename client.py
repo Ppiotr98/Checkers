@@ -15,7 +15,7 @@ from tags import *
 
 ###
 
-PORT = 7777 #server port
+PORT = 1234 #server port
 IP = '127.0.0.1' #server ip
 
 FONT = pygame.font.SysFont(None, 40) #font
@@ -85,12 +85,14 @@ class Server: #server class. it contains client's socket and handles sending and
         self.readable, self.writable, self.errors = select.select([self.sock], [self.sock], [self.sock], 0.5)
 
         if not self.readable:
+            #print(EMPTY)
             messege = Messege(EMPTY, [])
             return messege 
+
+        #print("COS!")
         
         messege = self.sock.recv(64)
         messege = messege.decode("utf-8")
-        print("New message from server: ", messege)
 
         messege = messege.split(';')
 
@@ -211,7 +213,8 @@ class Game(): #this class handles the game. What square/piece was selected, what
 
             #SEND MOVE TO SERVER: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             global server
-            server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
+            if self.turn == self.my_color:
+                server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
             
         else:
             return False
@@ -622,19 +625,19 @@ def gameplay(rival, color): #contains main game loop
 
 def won():
     global server
-    server.write(TAG_GAME_WON)
+    server.write(TAG_GAME_WON, [])
     server.disconnect()
     print("WON")
 
 def lost():
     global server
-    server.write(TAG_GAME_LOST)
+    server.write(TAG_GAME_LOST, [])
     server.disconnect()
     print("LOST")
 
 def drawn():
     global server
-    server.write(TAG_GAME_DRAWN)
+    server.write(TAG_GAME_DRAWN, [])
     server.disconnect()
     print("DRAWN")
 
@@ -744,126 +747,134 @@ def join_game():
     global WIN
     global server
 
+    server.connect_to_server(IP, PORT)
+
     input_box = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 16, 140, 40)
     color_inactive = pygame.Color(BG2)
     color_active = pygame.Color(BLUE)
-    color = color_inactive
+    ip_correct = False
     
-    active = False
-    text = ''
-    done = False
-    
-    ip = 0
-    
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # If the user clicked on the input_box rect.
-                if input_box.collidepoint(event.pos):
-                    # Toggle the active variable.
-                    active = not active
-                else:
-                    active = False
-                # Change the current color of the input box.
-                color = color_active if active else color_inactive
-            if event.type == pygame.KEYDOWN:
-                if active:
-                    if event.key == pygame.K_RETURN:
-                        if not is_int(ip):
-                            return
-                        ip = int(text)
-                        text = ''
-                        done = True
-                    elif event.key == pygame.K_BACKSPACE:
-                        text = text[:-1]
+    while not ip_correct:
+        active = False
+        text = ''
+        done = False
+        color = color_inactive
+        ip = 0
+
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                    server.disconnect()
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # If the user clicked on the input_box rect.
+                    if input_box.collidepoint(event.pos):
+                        # Toggle the active variable.
+                        active = not active
                     else:
-                        text += event.unicode
-                        
-        WIN.fill(WINDOW_BG)
-        draw_text('TYPE THE IP: ', FONT, WHITE, WIN, WIDTH // 2 - 100, HEIGHT // 2 - 50)
-        # Render the current text.
-        txt_surface = FONT.render(text, True, color)
-        # Resize the box if the text is too long.
-        width = max(200, txt_surface.get_width() + 10)
-        input_box.w = width
-        # Blit the text.
-        WIN.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
-        # Blit the input_box rect.
-        pygame.draw.rect(WIN, color, input_box, 2)
+                        active = False
+                    # Change the current color of the input box.
+                    color = color_active if active else color_inactive
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        server.disconnect()
+                        return
+                    if active:
+                        if event.key == pygame.K_RETURN:
+                            if not is_int(ip):
+                                return
+                            ip = int(text)
+                            text = ''
+                            done = True
+                        elif event.key == pygame.K_BACKSPACE:
+                            text = text[:-1]
+                        else:
+                            text += event.unicode
+                            
+            WIN.fill(WINDOW_BG)
+            draw_text('TYPE THE IP: ', FONT, WHITE, WIN, WIDTH // 2 - 100, HEIGHT // 2 - 50)
+            # Render the current text.
+            txt_surface = FONT.render(text, True, color)
+            # Resize the box if the text is too long.
+            width = max(200, txt_surface.get_width() + 10)
+            input_box.w = width
+            # Blit the text.
+            WIN.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+            # Blit the input_box rect.
+            pygame.draw.rect(WIN, color, input_box, 2)
 
-        pygame.display.update()
-        clock.tick(FPS)
-    
-    server.connect_to_server(IP, PORT)
+            pygame.display.update()
+            clock.tick(FPS)
 
-    server.write(TAG_JOIN_GAME, (ip, nick))      
+        server.write(TAG_JOIN_GAME, [ip, nick])      
 
-    ip_correct = True
-    rival = None
-    color = None
-    while True:
-        WIN.fill(WINDOW_BG)
-        draw_text('...', FONT, WHITE, WIN, 20, 20)
-        pygame.display.update()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                server.disconnect()
-                pygame.quit()
-                sys.exit()
-        messege = server.read()
-        if messege.tag == EMPTY:
-            continue
-        if messege.tag == TAG_WRONG_IP:
-            ip_correct = False
-            server.disconnect()
-            break
-        if messege.tag == TAG_GAME_STARTED:
-            rival = messege.data[0]
-            color = messege.data[1]
-            if color == 0:
-                color = WHITE
+        ip_correct = True
+        rival = None
+        color = None
+        while True:
+            WIN.fill(WINDOW_BG)
+            draw_text('...', FONT, WHITE, WIN, 20, 20)
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    server.disconnect()
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        server.disconnect()
+                        return
+            messege = server.read()
+            if messege.tag == EMPTY:
+                continue
+            if messege.tag == TAG_WRONG_IP:
+                ip_correct = False
+                break
+            if messege.tag == TAG_GAME_STARTED:
+                rival = messege.data[0]
+                color = messege.data[1]
+                if color == 0:
+                    color = WHITE
+                else:
+                    color = BLACK
+                break
             else:
-                color = BLACK
-            break
+                print("ERROR_join_game()")
+                server.disconnect()
+                return
+        
+        #print(rival, color, BLACK)
+
+        wait = True
+        wait_time = 1000
+        
+        start = pygame.time.get_ticks()
+        
+        if ip_correct:
+            while wait:
+                WIN.fill(WINDOW_BG)
+                draw_text('STARTING THE GAME...', FONT, WHITE, WIN, 20, 20)
+                
+                now = pygame.time.get_ticks()
+                if now - start >= wait_time:
+                    gameplay(rival, color)
+                    wait = False     
+
+                pygame.display.update()
+                clock.tick(FPS)
         else:
-            print("ERROR_join_game()")
-            server.disconnect()
-            return
-    
-    #print(rival, color, BLACK)
+            while wait:
+                WIN.fill(WINDOW_BG)
+                draw_text('WRONG IP!', FONT, WHITE, WIN, 20, 20)
+                
+                now = pygame.time.get_ticks()
+                if now - start >= wait_time:
+                    wait = False     
 
-    wait = True
-    wait_time = 1000
-    
-    start = pygame.time.get_ticks()
-    
-    if ip_correct:
-        while wait:
-            WIN.fill(WINDOW_BG)
-            draw_text('STARTING THE GAME...', FONT, WHITE, WIN, 20, 20)
-            
-            now = pygame.time.get_ticks()
-            if now - start >= wait_time:
-                gameplay(rival, color)
-                wait = False     
-
-            pygame.display.update()
-            clock.tick(FPS)
-    else:
-        while wait:
-            WIN.fill(WINDOW_BG)
-            draw_text('WRONG IP!', FONT, WHITE, WIN, 20, 20)
-            
-            now = pygame.time.get_ticks()
-            if now - start >= wait_time:
-                wait = False     
-
-            pygame.display.update()
-            clock.tick(FPS)
+                pygame.display.update()
+                clock.tick(FPS)
         
 ###
 
