@@ -350,12 +350,56 @@ void *serve_single_client(void *arg)
         }
 
         case TAG_OFFER_DRAW:
-            //TODO
+        {
+            playersMutex.lock();
+            gamesMutex.lock();
+            
+            //find opponent
+            Player* opponent = getOpponent(players, playersCount, 
+                    games, gamesCount, recivedMessage.userID);
+
+            gamesMutex.unlock();
+
+            //create and send response to opponent
+            Message opponentResponse(0, TAG_OFFER_DRAW, "");
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock();
             break;
+        }
 
         case TAG_ACCEPT_DRAW:
-            //TODO
+        {
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, recivedMessage.userID);
+            gamesMutex.lock();
+            
+            //find opponent
+            Player* opponent = getOpponent(players, playersCount, 
+                    games, gamesCount, ourPlayer->id);
+
+            //find game
+            Game* game = &games[ourPlayer->gameID]; 
+
+            //change game status
+            game->status = ENDED;
+
+            //change players gameID
+            ourPlayer->gameID = NOGAME;
+            opponent->gameID = NOGAME;
+
+            gamesMutex.unlock();
+
+            //create and send response to opponent
+            Message opponentResponse(0, TAG_DRAW_ACCEPTED, "");
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock();
             break;
+        }
         
         default:
             break;

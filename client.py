@@ -40,7 +40,7 @@ CROWN = pygame.transform.scale(pygame.image.load("crown.png"), (36, 27)) #crown 
 EMPTY = 0 #empty messege tag - no data available from teh server after server.read()
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT)) #display window
-pygame.display.set_caption("Sooper Kool Checkers") #window caption
+pygame.display.set_caption("Checkers") #window caption
 
 clock = pygame.time.Clock() #clock
 click = False #checks if mouse button was clicked
@@ -1017,7 +1017,7 @@ def main_menu():
     
     while True:
         WIN.fill(WINDOW_BG)
-        draw_text('SOOPER KOOL CHECKERS', FONT, WHITE, WIN, 20, 20)
+        draw_text('CHECKERS', FONT, WHITE, WIN, 20, 20)
         
         mx, my = pygame.mouse.get_pos()
         
