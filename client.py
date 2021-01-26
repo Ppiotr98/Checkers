@@ -73,7 +73,6 @@ class Server: #server class. it contains client's socket and handles sending and
 
     def connect_to_server(self, ip, port):
         self.sock.connect((ip, port))
-        #fcntl.fcntl(self.sock, fcntl.F_SETFL, os.O_NONBLOCK)
         self.sock.setblocking(False)
 
     def disconnect(self):
@@ -156,17 +155,11 @@ class Game(): #this class handles the game. What square/piece was selected, what
             
             result = self._move(row, col)
             if not result:
-                #print("if not result")
                 self.selected = None
                 self.valid_moves = {}
-                #self.select(row, col) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!??????
         
         piece = self.selected_piece = self.board.get_piece(row, col)
         if piece != 0 and piece.color == self.turn:
-            #print("if piece != 0 and piece.color == self.turn:")
-            #if self.prev_turn == self.turn:
-                
-            
             self.selected = piece
             self.valid_moves = self.board.get_valid_moves(piece)
             piece.selected = True
@@ -199,7 +192,6 @@ class Game(): #this class handles the game. What square/piece was selected, what
             skipped = self.valid_moves[(row, col)]
             if skipped:
                 self.board.remove(skipped)
-            #self.change_turn()
             
             self.additional_moves = {}
             self.additional_moves = self.board.get_valid_moves(self.selected)
@@ -238,11 +230,6 @@ class Piece:
         self.color = color
         self.queen = False
         self.selected = False
-        
-        #if self.color == WHITE:
-            #self.direction = -1
-        #else:
-            #self.direction = 1
             
         self.x = 0
         self.y = 0
@@ -281,7 +268,6 @@ class Piece:
 class Board:
     def __init__(self):
         self.board = []
-        #self.selected_piece = None
         self.white_left = self.black_left = 12
         self.white_queens = self.black_queens = 0
         self.create_board()
@@ -342,7 +328,6 @@ class Board:
                 if abs(piece.row - move_row) == 1:
                     moves.pop(move)
         
-        #print(moves)
         return moves
         
     def _get_all_moves(self, piece):
@@ -350,12 +335,9 @@ class Board:
         left = piece.col - 1
         right = piece.col + 1
         row = piece.row
-        #col = piece.col
 
-        #if piece.color == BLACK or piece.queen:
         moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, piece.color, left))
         moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, piece.color, right))
-        #if piece.color == WHITE or piece.queen:
         moves.update(self._traverse_left(row + 1, min(row + 3, ROWS), 1, piece.color, left))
         moves.update(self._traverse_right(row + 1, min(row + 3, ROWS), 1, piece.color, right))
     
@@ -394,8 +376,6 @@ class Board:
                         row = max(r - 3, 0)
                     else:
                         row = min(r + 3, ROWS)
-                    #moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped = last))
-                    #moves.update(self._traverse_right(r + step, row, step, color, left + 1, skipped = last))
                 break
             elif current.color == color:
                 break
@@ -427,8 +407,6 @@ class Board:
                         row = max(r - 3, 0)
                     else:
                         row = min(r + 3, ROWS)
-                    #moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped = last))
-                    #moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped = last))
                 break
             elif current.color == color:
                 break
@@ -475,7 +453,6 @@ class Board:
                 piece = self.board[row][col]
                 if piece != 0:
                     piece.draw(win)
-                    #print(row, col, piece.x, piece.y, piece.row, piece.col)
                 
     def move(self, piece, row, col):
         self.board[piece.row][piece.col], self.board[row][col] = self.board[row][col], self.board[piece.row][piece.col]
@@ -670,14 +647,12 @@ def offer_draw():
 def surrender():
     global server
     server.write(TAG_SURRENDER, [])
-    lost()
 
 ###
 
 def accept_draw():
     global server
     server.write(TAG_ACCEPT_DRAW, [])
-    drawn()
 
 ###
 
@@ -857,8 +832,6 @@ def join_game():
                 print("ERROR_join_game()")
                 server.disconnect()
                 return
-        
-        #print(rival, color, BLACK)
 
         wait = True
         wait_time = 1000

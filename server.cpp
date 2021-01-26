@@ -87,6 +87,9 @@ void *serve_single_client(void *arg)
                 ourPlayer = &players[playersCount - 1];
             }
 
+            //update nick
+            ourPlayer->nick = nick;
+
             gamesMutex.lock();
 
             //find game to join
@@ -185,6 +188,9 @@ void *serve_single_client(void *arg)
                 ourPlayer = &players[playersCount - 1];
             }
 
+            //update nick
+            ourPlayer->nick = nick;
+
             gamesMutex.lock();
 
             //wrong game ip
@@ -193,6 +199,9 @@ void *serve_single_client(void *arg)
                 //create and send response to our player
                 Message response(0, TAG_WRONG_IP, "");
                 response.sendto(ourPlayer->clientSocket);
+
+                gamesMutex.unlock();
+                playersMutex.unlock();
 
                 break;
             }
@@ -256,7 +265,7 @@ void *serve_single_client(void *arg)
             playersMutex.lock();
 
             Player* hostPlayer = getPlayer(players, 
-            playersCount, recivedMessage.userID);
+                    playersCount, recivedMessage.userID);
 
             //hosting player isn't stored in players array
             if(hostPlayer == nullptr)
@@ -268,6 +277,9 @@ void *serve_single_client(void *arg)
 
                 hostPlayer = &players[playersCount - 1];
             }
+
+            //update nick
+            hostPlayer->nick = nick;
 
             gamesMutex.lock();
 
@@ -304,6 +316,9 @@ void *serve_single_client(void *arg)
             //no opponent found
             if(opponent == nullptr)
             {
+                gamesMutex.unlock();
+                playersMutex.unlock();
+                
                 throw std::invalid_argument("Player with this id doesn't exist or have no opponent");
             }
             
@@ -401,6 +416,72 @@ void *serve_single_client(void *arg)
             break;
         }
         
+        case TAG_GAME_LOST:
+        {
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, recivedMessage.userID);
+            gamesMutex.lock();
+            
+            //find opponent
+            Player* opponent = getOpponent(players, playersCount, 
+                    games, gamesCount, ourPlayer->id);
+
+            //find game
+            Game* game = &games[ourPlayer->gameID]; 
+
+            //change game status
+            game->status = ENDED;
+
+            //change players gameID
+            ourPlayer->gameID = NOGAME;
+            opponent->gameID = NOGAME;
+
+            gamesMutex.unlock();
+
+            //create and send response to opponent
+            Message opponentResponse(0, TAG_GAME_WON, "");
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock();
+            break;
+        }
+
+        case TAG_GAME_DRAWN:
+        {
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, recivedMessage.userID);
+            gamesMutex.lock();
+            
+            //find opponent
+            Player* opponent = getOpponent(players, playersCount, 
+                    games, gamesCount, ourPlayer->id);
+
+            //find game
+            Game* game = &games[ourPlayer->gameID]; 
+
+            //change game status
+            game->status = ENDED;
+
+            //change players gameID
+            ourPlayer->gameID = NOGAME;
+            opponent->gameID = NOGAME;
+
+            gamesMutex.unlock();
+
+            //create and send response to opponent
+            Message opponentResponse(0, TAG_GAME_DRAWN, "");
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock();
+            break;
+        }
+
         default:
             break;
         }
@@ -440,20 +521,6 @@ int main()
         //thread receiving and handling messages from client
         pthread_t tid;
         pthread_create(&tid, NULL, serve_single_client, clientDescriptor);
-        
-        //example how to send a message to the client
-        /*
-        int reciverSocket = clientDescriptor->socket;
-        int t = TAG_JOIN_RANDOM_GAME;
-        std::string str = "a1";
-        Message mes(0, t, str);
-
-        for(int i = 0; i < 3; i++)
-        {
-            mes.sendto(reciverSocket);
-            sleep(0.2);
-        }
-        */
 
         pthread_detach(tid);
     }
