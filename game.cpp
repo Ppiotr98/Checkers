@@ -1,4 +1,5 @@
 #include <random>
+#include <iostream>
 
 #include "game.h"
 
@@ -58,7 +59,7 @@ Player* getOpponent(Player* players, int playersCount,
 {
     //find our player
     Player* ourPlayer = getPlayer(players, playersCount, playerID);
-
+            
     //player doesn't exist
     if (ourPlayer == nullptr)
     {

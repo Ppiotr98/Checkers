@@ -188,7 +188,7 @@ void *serve_single_client(void *arg)
             gamesMutex.lock();
 
             //wrong game ip
-            if(gamesCount <= gameIP)
+            if(gamesCount <= gameIP || games[gameIP].status != WAITING)
             {
                 //create and send response to our player
                 Message response(0, TAG_WRONG_IP, "");
@@ -317,8 +317,37 @@ void *serve_single_client(void *arg)
         }
 
         case TAG_SURRENDER:
-            //TODO
+        {
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, recivedMessage.userID);
+            gamesMutex.lock();
+            
+            //find opponent
+            Player* opponent = getOpponent(players, playersCount, 
+                    games, gamesCount, ourPlayer->id);
+
+            //find game
+            Game* game = &games[ourPlayer->gameID]; 
+
+            //change game status
+            game->status = ENDED;
+
+            //change players gameID
+            ourPlayer->gameID = NOGAME;
+            opponent->gameID = NOGAME;
+
+            gamesMutex.unlock();
+
+            //create and send response to opponent
+            Message opponentResponse(0, TAG_SURRENDER, "");
+            opponentResponse.sendto(opponent->clientSocket);
+
+            playersMutex.unlock();
             break;
+        }
 
         case TAG_OFFER_DRAW:
             //TODO

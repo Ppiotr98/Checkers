@@ -3,6 +3,8 @@
 
 #include <string>
 
+#define NOGAME -1
+
 enum Status
 {
     ENDED = 0,
