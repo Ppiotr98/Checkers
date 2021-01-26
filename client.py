@@ -15,7 +15,7 @@ from tags import *
 
 ###
 
-PORT = 7777 #server port
+PORT = 1234 #server port
 IP = '127.0.0.1' #server ip
 
 FONT = pygame.font.SysFont(None, 40) #font
@@ -85,12 +85,14 @@ class Server: #server class. it contains client's socket and handles sending and
         self.readable, self.writable, self.errors = select.select([self.sock], [self.sock], [self.sock], 0.5)
 
         if not self.readable:
+            #print(EMPTY)
             messege = Messege(EMPTY, [])
             return messege 
+
+        #print("COS!")
         
         messege = self.sock.recv(64)
         messege = messege.decode("utf-8")
-        print("New message from server: ", messege)
 
         messege = messege.split(';')
 
@@ -188,7 +190,7 @@ class Game(): #this class handles the game. What square/piece was selected, what
             row_moved_from = self.selected.row
             col_moved_from = self.selected.col
             self.board.move(self.selected, row, col)
-
+            
             global server
             if self.turn == self.my_color:
                 server.write(TAG_PAWN_MOVED, [row_moved_from, col_moved_from, row, col, not self.jump_again])
@@ -212,8 +214,8 @@ class Game(): #this class handles the game. What square/piece was selected, what
             
             if self.jump_again == False:
                 self.additional_moves = {}
-                self.change_turn()
-
+                self.change_turn()    
+            
         else:
             return False
             
@@ -307,7 +309,7 @@ class Board:
         for move in moves:
             row, col = move
             pygame.draw.circle(win, BLUE, (col * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2), 10)
-
+        
     def is_stuck(self, turn):
         for r in self.board:
             for p in r:
@@ -530,11 +532,11 @@ def gameplay(rival, color): #contains main game loop
             else:
                 lost()
                 return
-        
+
         if game.board.is_stuck(game.turn):
             drawn()
             return
-
+        
         draw_text('Playing with: ' + rival, FONT, WHITE, WIN, 620, 20)
                 
         mx, my = pygame.mouse.get_pos()
@@ -677,7 +679,6 @@ def surrender():
 def accept_draw():
     global server
     server.write(TAG_ACCEPT_DRAW, [])
-    drawn()
 
 ###
 
@@ -897,7 +898,7 @@ def join_random_game():
 
     server.connect_to_server(IP, PORT)
 
-    server.write(TAG_JOIN_RANDOM_GAME, [nick])
+    server.write(TAG_JOIN_GAME, [nick])
 
     rival = None
     color = None
