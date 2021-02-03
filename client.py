@@ -502,14 +502,14 @@ def gameplay(rival, color): #contains main game loop
         
         if game.board.winner() != None:
             if game.board.winner() == game.my_color:
-                won()
+                won(game, True)
                 return
             else:
-                lost()
+                lost(game, True)
                 return
         
         if game.board.is_stuck(game.turn):
-            drawn()
+            drawn(game, True)
             return
 
         draw_text('Playing with: ' + rival, FONT, WHITE, WIN, 620, 20)
@@ -532,11 +532,13 @@ def gameplay(rival, color): #contains main game loop
             button_surrender_bg = BG2
             if click:
                 surrender()
+                lost(game, False)
                 return
         if button_accept_draw.collidepoint((mx, my)) and show_accept_draw:
             button_accept_draw_bg = BG2
             if click:
                 accept_draw()
+                drawn(game, False)
                 return
                 
         pygame.draw.rect(WIN, button_offer_draw_bg, button_offer_draw)
@@ -569,19 +571,23 @@ def gameplay(rival, color): #contains main game loop
             rival_move.append(messege.data[3])
             rival_done = messege.data[4]
         elif messege.tag == TAG_SURRENDER:
-            won()
+            won(game, False)
             return
         elif messege.tag == TAG_OFFER_DRAW:
             show_accept_draw = True
         elif messege.tag == TAG_DRAW_ACCEPTED:
-            accept_draw()
+            drawn(game, False)
             return
         elif messege.tag == TAG_GAME_WON:
-            won()
+            #print("WIN")
+            won(game, False)
+            return
         elif messege.tag == TAG_GAME_LOST:
-            lost()
+            #print("LOST")
+            lost(game, False)
+            return
         elif messege.tag == TAG_GAME_DRAWN:
-            drawn()
+            drawn(game, False)
         elif messege.tag != EMPTY:
             print("ERROR_gameplay(): ", messege.tag)
             error()
@@ -595,7 +601,8 @@ def gameplay(rival, color): #contains main game loop
                 sys.exit()
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
-                    run = False
+                    #run = False
+                    pass
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
@@ -613,23 +620,133 @@ def gameplay(rival, color): #contains main game loop
 
 ###
 
-def won():
+def won(game, send_to_server):
     global server
-    server.write(TAG_GAME_WON, [])
+    if send_to_server:
+        server.write(TAG_GAME_WON, [])
     server.disconnect()
-    print("WON")
+    
+    run = True
 
-def lost():
-    global server
-    server.write(TAG_GAME_LOST, [])
-    server.disconnect()
-    print("LOST")
+    while run:
+        clock.tick(FPS)
+        WIN.fill(WINDOW_BG)
 
-def drawn():
+        draw_text('YOU WON THE GAME!', FONT, WHITE, WIN, 620, 20)
+                
+        mx, my = pygame.mouse.get_pos()
+        
+        button_back_to_menu = pygame.Rect(650, 100, 300, 50)
+        
+        button_back_to_menu_bg = BG1
+        
+        if button_back_to_menu.collidepoint((mx, my)):
+            button_back_to_menu_bg = BG2
+            if click:
+                return
+
+        pygame.draw.rect(WIN, button_back_to_menu_bg, button_back_to_menu)
+        
+        draw_text('BACK TO MENU', FONT, WHITE, WIN, 655, 105)
+        
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    return
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        game.update()
+
+
+def lost(game, send_to_server):
     global server
-    server.write(TAG_GAME_DRAWN, [])
+    if send_to_server:
+        server.write(TAG_GAME_LOST, [])
     server.disconnect()
-    print("DRAWN")
+    run = True
+
+    while run:
+        clock.tick(FPS)
+        WIN.fill(WINDOW_BG)
+
+        draw_text('YOU LOST THE GAME!', FONT, WHITE, WIN, 620, 20)
+                
+        mx, my = pygame.mouse.get_pos()
+        
+        button_back_to_menu = pygame.Rect(650, 100, 300, 50)
+        
+        button_back_to_menu_bg = BG1
+        
+        if button_back_to_menu.collidepoint((mx, my)):
+            button_back_to_menu_bg = BG2
+            if click:
+                return
+
+        pygame.draw.rect(WIN, button_back_to_menu_bg, button_back_to_menu)
+        
+        draw_text('BACK TO MENU', FONT, WHITE, WIN, 655, 105)
+        
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    return
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        game.update()
+
+def drawn(game, send_to_server):
+    global server
+    if send_to_server:
+        server.write(TAG_GAME_DRAWN, [])
+    server.disconnect()
+    run = True
+
+    while run:
+        clock.tick(FPS)
+        WIN.fill(WINDOW_BG)
+
+        draw_text('DRAW!', FONT, WHITE, WIN, 620, 20)
+                
+        mx, my = pygame.mouse.get_pos()
+        
+        button_back_to_menu = pygame.Rect(650, 100, 300, 50)
+        
+        button_back_to_menu_bg = BG1
+        
+        if button_back_to_menu.collidepoint((mx, my)):
+            button_back_to_menu_bg = BG2
+            if click:
+                return
+
+        pygame.draw.rect(WIN, button_back_to_menu_bg, button_back_to_menu)
+        
+        draw_text('BACK TO MENU', FONT, WHITE, WIN, 655, 105)
+        
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    return
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        game.update()
 
 def error():
     global server
@@ -924,6 +1041,8 @@ def change_nick():
     global nick
     
     input_box = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 16, 140, 40)
+    #print(WIDTH // 2 - 100)
+    #print(HEIGHT // 2 - 16)
     color_inactive = pygame.Color(BG2)
     color_active = pygame.Color(BLUE)
     color = color_inactive
@@ -963,6 +1082,8 @@ def change_nick():
         WIN.fill(WINDOW_BG)
         draw_text('YOUR CURRENT NICK IS: ' + nick, FONT, WHITE, WIN, 20, 20)
         draw_text('NEW NICK: ', FONT, WHITE, WIN, WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        #print(WIDTH // 2 - 100)
+        #print(HEIGHT // 2 - 50)
         # Render the current text.
         txt_surface = FONT.render(text, True, color)
         # Resize the box if the text is too long.
@@ -984,13 +1105,134 @@ def quit():
     
 ###
 
+def change_ip():
+    global WIN
+    global IP
+    global PORT
+    
+    input_box = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 16, 140, 40)
+    #print(WIDTH // 2 - 100)
+    #print(HEIGHT // 2 - 16)
+    color_inactive = pygame.Color(BG2)
+    color_active = pygame.Color(BLUE)
+    color = color_inactive
+    
+    active = False
+    text = ''
+    done_ip = False
+    done_port = False
+    
+    while not done_ip:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done_ip = True
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # If the user clicked on the input_box rect.
+                if input_box.collidepoint(event.pos):
+                    # Toggle the active variable.
+                    active = not active
+                else:
+                    active = False
+                # Change the current color of the input box.
+                color = color_active if active else color_inactive
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done_ip = True
+                    done_port = True
+                    continue
+                if active:
+                    if event.key == pygame.K_RETURN:
+                        IP = text
+                        text = ''
+                        done_ip = True
+                    elif event.key == pygame.K_BACKSPACE:
+                        text = text[:-1]
+                    else:
+                        text += event.unicode
+                        
+        WIN.fill(WINDOW_BG)
+        draw_text('YOUR CURRENT IP IS: ' + IP, FONT, WHITE, WIN, 20, 20)
+        draw_text('NEW IP: ', FONT, WHITE, WIN, WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        #print(WIDTH // 2 - 100)
+        #print(HEIGHT // 2 - 50)
+        # Render the current text.
+        txt_surface = FONT.render(text, True, color)
+        # Resize the box if the text is too long.
+        width = max(200, txt_surface.get_width() + 10)
+        input_box.w = width
+        # Blit the text.
+        WIN.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        # Blit the input_box rect.
+        pygame.draw.rect(WIN, color, input_box, 2)
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+    active = False
+    text = ''
+    
+    while not done_port:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done_port = True
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # If the user clicked on the input_box rect.
+                if input_box.collidepoint(event.pos):
+                    # Toggle the active variable.
+                    active = not active
+                else:
+                    active = False
+                # Change the current color of the input box.
+                color = color_active if active else color_inactive
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done_port = True
+                    continue
+                if active:
+                    if event.key == pygame.K_RETURN:
+                        PORT = text
+                        text = ''
+                        done_port = True
+                    elif event.key == pygame.K_BACKSPACE:
+                        text = text[:-1]
+                    else:
+                        text += event.unicode
+                        
+        WIN.fill(WINDOW_BG)
+        draw_text('YOUR CURRENT PORT IS: ' + str(PORT), FONT, WHITE, WIN, 20, 20)
+        draw_text('NEW PORT: ', FONT, WHITE, WIN, WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        #print(WIDTH // 2 - 100)
+        #print(HEIGHT // 2 - 50)
+        # Render the current text.
+        txt_surface = FONT.render(text, True, color)
+        # Resize the box if the text is too long.
+        width = max(200, txt_surface.get_width() + 10)
+        input_box.w = width
+        # Blit the text.
+        WIN.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        # Blit the input_box rect.
+        pygame.draw.rect(WIN, color, input_box, 2)
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+###
+
 def main_menu():
     global WIN
     global click
+    global IP
+    global PORT
     
     while True:
+        #print("IP: " + IP + "    PORT: " + str(PORT))
         WIN.fill(WINDOW_BG)
         draw_text('CHECKERS', FONT, WHITE, WIN, 20, 20)
+        draw_text('IP: ' + IP + '    PORT: ' + str(PORT), FONT, WHITE, WIN, 500, 266)
         
         mx, my = pygame.mouse.get_pos()
         
@@ -999,12 +1241,14 @@ def main_menu():
         button_join_random_game = pygame.Rect(50, 300, 400, 50)
         button_change_nick = pygame.Rect(50, 400, 400, 50)
         button_quit = pygame.Rect(50, 500, 400, 50)
+        button_change_ip = pygame.Rect(500, 300, 400, 50)
         
         button_host_game_bg = BG1
         button_join_game_bg = BG1
         button_join_random_game_bg = BG1
         button_change_nick_bg = BG1
         button_quit_bg = BG1
+        button_change_ip_bg = BG1
         
         if button_host_game.collidepoint((mx, my)):
             button_host_game_bg = BG2
@@ -1026,18 +1270,24 @@ def main_menu():
             button_quit_bg = BG2
             if click:
                 quit()
+        if button_change_ip.collidepoint((mx, my)):
+            button_change_ip_bg = BG2
+            if click:
+                change_ip()
                 
         pygame.draw.rect(WIN, button_host_game_bg, button_host_game)
         pygame.draw.rect(WIN, button_join_game_bg, button_join_game)
         pygame.draw.rect(WIN, button_join_random_game_bg, button_join_random_game)
         pygame.draw.rect(WIN, button_change_nick_bg, button_change_nick)
         pygame.draw.rect(WIN, button_quit_bg, button_quit)
+        pygame.draw.rect(WIN, button_change_ip_bg, button_change_ip)
         
         draw_text('HOST GAME', FONT, WHITE, WIN, 55, 105)
         draw_text('JOIN GAME', FONT, WHITE, WIN, 55, 205)
         draw_text('JOIN RANDOM GAME', FONT, WHITE, WIN, 55, 305)
         draw_text('CHANGE NICK', FONT, WHITE, WIN, 55, 405)
         draw_text('QUIT', FONT, WHITE, WIN, 55, 505)
+        draw_text('CHANGE IP AND PORT', FONT, WHITE, WIN, 505,305)
         
         click = False
         for event in pygame.event.get():
