@@ -47,12 +47,62 @@ void *serve_single_client(void *arg)
         //recive message string
         char buf[buf_size] = "";
         int bytesRead = read(clientDescriptor->socket, buf, buf_size);
+        
+        bool isConnectionClosed = bytesRead == 0;
+        bool isClosedFirstTime = true;
         if (bytesRead < 0)
         {
             perror("read() ERROR");
             exit(1);
         }
-        else if (bytesRead == 0)
+        else if (isConnectionClosed && isClosedFirstTime)
+        {
+            //After a player disconnects We have to end 
+            //games that he hosted to don't allow other users
+            //join them
+            isClosedFirstTime = false;
+
+            int userID = clientDescriptor->address.sin_port;
+
+            playersMutex.lock();
+
+            //find our player
+            Player* ourPlayer = getPlayer(players, 
+                    playersCount, userID);
+
+            //ourPlayer doesn't exist
+            if(ourPlayer == nullptr)
+            {
+                playersMutex.unlock(); 
+                continue;
+            }
+
+            gamesMutex.lock();
+
+            bool isOurPlayerInGame = ourPlayer->gameID != NOGAME;
+            if(!isOurPlayerInGame)
+            {
+                gamesMutex.unlock();
+                playersMutex.unlock(); 
+                continue;
+            }
+            
+            Game* ourPlayerGame = &games[ourPlayer->gameID]; 
+            if (ourPlayerGame->status != WAITING)
+            {
+                gamesMutex.unlock();
+                playersMutex.unlock(); 
+                continue;
+            }
+
+            ourPlayerGame->status = ENDED;
+            ourPlayer->gameID = NOGAME;
+
+            gamesMutex.unlock();
+            playersMutex.unlock(); 
+            continue;
+        }
+        else if (isConnectionClosed && !isClosedFirstTime)
         {
             continue;
         }
@@ -499,6 +549,8 @@ int main()
     //create socket
     //all messages are transmited using sockets
     int sock = socket(PF_INET, SOCK_STREAM, 0);
+    int on = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof(on));
 
     //set the port on which we'll be listening
     bind(sock, (struct sockaddr*) &addr, sizeof(addr));
